@@ -3835,17 +3835,26 @@ let dictationStats = { correct: 0, wrong: 0, wrongWords: [], streak: 0 }; // str
 let dictationTimer = null; // countdown timer for each word
 const DICTATION_TIME_LIMIT = 30; // seconds per word
 
-// 播放王者荣耀击杀真人语音（TTS英语播报）
+// 播放王者击杀音效（优先 mp3，没有则 TTS 真人语音）
 function playKillVoice(line) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(line);
-  u.lang = 'en-US'; u.rate = 0.85; u.pitch = 0.8; u.volume = 1.0;
-  const voices = window.speechSynthesis.getVoices();
-  const pref = voices.find(v => v.lang.startsWith('en') && /male|daniel|alex|mark/i.test(v.name))
-    || voices.find(v => v.lang.startsWith('en'));
-  if (pref) u.voice = pref;
-  window.speechSynthesis.speak(u);
+  // 尝试播放 mp3
+  const mp3Path = 'assets/sounds/' + line.toLowerCase().replace(/ /g, '_') + '.mp3';
+  const audio = new Audio(mp3Path);
+  audio.volume = 0.8;
+  audio.play().catch(() => {
+    // mp3 不存在，降级为 TTS 语音
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(line);
+    u.lang = 'en-US'; u.rate = 0.9; u.pitch = 0.85; u.volume = 1.0;
+    setTimeout(() => {
+      const voices = window.speechSynthesis.getVoices();
+      const pref = voices.find(v => v.lang.startsWith('en') && /male|daniel|alex|mark/i.test(v.name))
+        || voices.find(v => v.lang.startsWith('en'));
+      if (pref) u.voice = pref;
+      window.speechSynthesis.speak(u);
+    }, 100);
+  });
 }
 
 // 王者击杀语音播报（返回文字 + 播放真人语音）
@@ -3853,14 +3862,7 @@ function playKillAnnouncement(combo) {
   const map = {1:'First Blood',2:'Double Kill',3:'Triple Kill',4:'Quadra Kill',5:'Penta Kill',10:'Godlike'};
   const line = map[combo] || (combo >= 15 ? 'Legendary' : '');
   if (!line) return '';
-  setTimeout(() => playKillVoice(line), 300);
-  // 3杀以上加轻量和弦背景
-  if (combo >= 3) {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const t = ctx.currentTime;
-    const bg = (f, s, d, v=0.12) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.type='sine'; o.frequency.value=f; g.gain.setValueAtTime(0,s); g.gain.linearRampToValueAtTime(v,s+0.05); g.gain.exponentialRampToValueAtTime(0.01,s+d); o.connect(g); g.connect(ctx.destination); o.start(s); o.stop(s+d); };
-    bg(261.63,t,0.6,0.12); bg(329.63,t+0.1,0.6,0.10); bg(392.00,t+0.2,0.7,0.08);
-  }
+  setTimeout(() => playKillVoice(line), 500);
   return line;
 }
 
