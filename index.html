@@ -3835,136 +3835,33 @@ let dictationStats = { correct: 0, wrong: 0, wrongWords: [], streak: 0 }; // str
 let dictationTimer = null; // countdown timer for each word
 const DICTATION_TIME_LIMIT = 30; // seconds per word
 
-// 播放激励音效（王者荣耀风格击杀音效）
-function playSuccessSound(combo) {
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const now = audioContext.currentTime;
-
-  // 王者荣耀风格音效
-  // First Blood: 简洁有力的单音上升
-  // Double Kill: 双连击，音调跳跃
-  // Triple Kill: 三连决胜，华丽上行和弦
-  // Quadra Kill: 四连超凡，快速上行音阶
-  // Penta Kill: 五连绝世，华丽长音
-  // 超神：特殊庆祝音
-
-  function playTone(freq, startTime, duration, type = 'sawtooth', volume = 0.3) {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(freq, startTime);
-
-    gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    oscillator.start(startTime);
-    oscillator.stop(startTime + duration);
-  }
-
-  // 根据连对数播放专属音效（每个连对数独立，不叠加）
-  if (combo === 1) {
-    // First Blood - 简洁有力双音
-    playTone(523.25, now, 0.3);
-    playTone(659.25, now + 0.15, 0.3);
-  } else if (combo === 2) {
-    // Double Kill - 双连击
-    playTone(523.25, now, 0.25, 'square');
-    playTone(783.99, now + 0.1, 0.25, 'square');
-    playTone(659.25, now + 0.35, 0.3);
-    playTone(987.77, now + 0.45, 0.3);
-  } else if (combo === 3) {
-    // Triple Kill - 三连决胜
-    playTone(523.25, now, 0.2, 'square');
-    playTone(659.25, now + 0.08, 0.2, 'square');
-    playTone(783.99, now + 0.16, 0.2, 'square');
-    playTone(659.25, now + 0.4, 0.4);
-    playTone(987.77, now + 0.55, 0.4);
-    playTone(1174.66, now + 0.7, 0.4);
-  } else if (combo === 4) {
-    // Quadra Kill - 四连超凡
-    playTone(523.25, now, 0.15, 'square');
-    playTone(659.25, now + 0.06, 0.15, 'square');
-    playTone(783.99, now + 0.12, 0.15, 'square');
-    playTone(987.77, now + 0.18, 0.15, 'square');
-    playTone(659.25, now + 0.45, 0.3);
-    playTone(987.77, now + 0.6, 0.3);
-    playTone(1174.66, now + 0.75, 0.3);
-    playTone(1318.51, now + 0.9, 0.4);
-  } else if (combo === 5) {
-    // Penta Kill - 五连绝世（最华丽）
-    playTone(523.25, now, 0.12, 'square');
-    playTone(659.25, now + 0.05, 0.12, 'square');
-    playTone(783.99, now + 0.1, 0.12, 'square');
-    playTone(987.77, now + 0.15, 0.12, 'square');
-    playTone(1174.66, now + 0.2, 0.12, 'square');
-    // 高潮部分
-    playTone(659.25, now + 0.45, 0.4, 'sawtooth', 0.4);
-    playTone(987.77, now + 0.6, 0.4, 'sawtooth', 0.4);
-    playTone(1174.66, now + 0.75, 0.4, 'sawtooth', 0.4);
-    playTone(1318.51, now + 0.9, 0.5, 'sawtooth', 0.4);
-    playTone(1567.98, now + 1.1, 0.6, 'sawtooth', 0.4);
-  } else if (combo === 10) {
-    // 超神了！
-    playTone(523.25, now, 0.1, 'square');
-    playTone(659.25, now + 0.04, 0.1, 'square');
-    playTone(783.99, now + 0.08, 0.1, 'square');
-    playTone(987.77, now + 0.12, 0.1, 'square');
-    playTone(1174.66, now + 0.16, 0.1, 'square');
-    playTone(1318.51, now + 0.2, 0.1, 'square');
-    // 超神长音
-    playTone(1046.50, now + 0.5, 0.8, 'sawtooth', 0.4);
-    playTone(1318.51, now + 0.7, 0.8, 'sawtooth', 0.4);
-    playTone(1567.98, now + 0.9, 1.0, 'sawtooth', 0.4);
-  } else if (combo >= 15) {
-    // 无人能挡！（15+ 连对）
-    playTone(523.25, now, 0.1, 'square');
-    playTone(659.25, now + 0.03, 0.1, 'square');
-    playTone(783.99, now + 0.06, 0.1, 'square');
-    playTone(987.77, now + 0.09, 0.1, 'square');
-    playTone(1174.66, now + 0.12, 0.1, 'square');
-    playTone(1318.51, now + 0.15, 0.1, 'square');
-    playTone(1567.98, now + 0.18, 0.1, 'square');
-    // 超长庆祝
-    playTone(1046.50, now + 0.6, 1.0, 'sawtooth', 0.4);
-    playTone(1318.51, now + 0.8, 1.0, 'sawtooth', 0.4);
-    playTone(1567.98, now + 1.0, 1.2, 'sawtooth', 0.4);
-    playTone(2093.00, now + 1.3, 1.5, 'sawtooth', 0.4);
-  } else {
-    // 普通连对（6-9）- 简化版
-    playTone(523.25, now, 0.15, 'square');
-    playTone(659.25, now + 0.06, 0.15, 'square');
-    playTone(783.99, now + 0.12, 0.15, 'square');
-    playTone(987.77, now + 0.18, 0.2);
-    playTone(1174.66, now + 0.35, 0.3);
-  }
+// 播放王者荣耀击杀真人语音（TTS英语播报）
+function playKillVoice(line) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(line);
+  u.lang = 'en-US'; u.rate = 0.85; u.pitch = 0.8; u.volume = 1.0;
+  const voices = window.speechSynthesis.getVoices();
+  const pref = voices.find(v => v.lang.startsWith('en') && /male|daniel|alex|mark/i.test(v.name))
+    || voices.find(v => v.lang.startsWith('en'));
+  if (pref) u.voice = pref;
+  window.speechSynthesis.speak(u);
 }
 
-// 王者播报文字（仅显示，不播放语音）
-function playKingAnnouncement(combo) {
-  let announcement = '';
-
-  if (combo === 1) {
-    announcement = '🎯 First Blood!';
-  } else if (combo === 2) {
-    announcement = '⚔️ Double Kill!';
-  } else if (combo === 3) {
-    announcement = '🔥 Triple Kill!';
-  } else if (combo === 4) {
-    announcement = '💀 Quadra Kill!';
-  } else if (combo === 5) {
-    announcement = '👑 Penta Kill!';
-  } else if (combo === 10) {
-    announcement = '⚡ 超神了！';
-  } else if (combo >= 15) {
-    announcement = '🏆 无人能挡！';
+// 王者击杀语音播报（返回文字 + 播放真人语音）
+function playKillAnnouncement(combo) {
+  const map = {1:'First Blood',2:'Double Kill',3:'Triple Kill',4:'Quadra Kill',5:'Penta Kill',10:'Godlike'};
+  const line = map[combo] || (combo >= 15 ? 'Legendary' : '');
+  if (!line) return '';
+  setTimeout(() => playKillVoice(line), 300);
+  // 3杀以上加轻量和弦背景
+  if (combo >= 3) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const t = ctx.currentTime;
+    const bg = (f, s, d, v=0.12) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.type='sine'; o.frequency.value=f; g.gain.setValueAtTime(0,s); g.gain.linearRampToValueAtTime(v,s+0.05); g.gain.exponentialRampToValueAtTime(0.01,s+d); o.connect(g); g.connect(ctx.destination); o.start(s); o.stop(s+d); };
+    bg(261.63,t,0.6,0.12); bg(329.63,t+0.1,0.6,0.10); bg(392.00,t+0.2,0.7,0.08);
   }
-
-  return announcement;
+  return line;
 }
 
 function startDictation() {
@@ -4258,23 +4155,15 @@ function handleDictationSubmit() {
 
     const combo = dictationStats.streak;
 
-    // 王者荣耀风格播报
-    const announcement = playKingAnnouncement(combo);
-
     input.className = 'dictation-input correct';
 
-    // 特殊连对显示王者播报，普通连对显示常规文案
-    if (announcement) {
-      feedback.innerHTML = `<span style="color:var(--success);font-size:18px;font-weight:700;">${announcement}</span>`;
-      showToast(announcement);
+    // 播放单词发音 + 王者击杀语音播报
+    speakWord(correct);
+    const killLine = playKillAnnouncement(combo);
+    if (killLine) {
+      feedback.innerHTML = `<span style="color:var(--success);font-size:18px;font-weight:700;">🔥 ${killLine}!</span>`;
     } else {
       feedback.innerHTML = `<span style="color:var(--success)">✅ 正确！(${combo}连对)</span>`;
-    }
-
-    // 播放单词发音 + 激励音效
-    speakWord(correct);
-    if (combo >= 1) {
-      playSuccessSound(combo);
     }
 
     // 震动反馈（仅移动端）
