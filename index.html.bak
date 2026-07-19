@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>智能背单词</title>
+<style>
+:root {
+  --primary: #007AFF;
+  --success: #34C759;
+  --warning: #FF9500;
+  --danger: #FF3B30;
+  --bg: #F2F2F7;
+  --card: #FFFFFF;
+  --text: #1C1C1E;
+  --subtext: #8E8E93;
+  --shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Navigation */
+.nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(20px);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(0,0,0,0.1);
+  z-index: 100;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: none;
+  font-size: 10px;
+  color: var(--subtext);
+}
+
+.nav-item.active { color: var(--primary); }
+.nav-item svg { width: 24px; height: 24px; }
+
+/* Pages */
+.page {
+  display: none;
+  padding: 20px;
+  padding-bottom: 100px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.page.active { display: block; }
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.header p {
+  color: var(--subtext);
+  font-size: 14px;
+}
+
+/* Stats Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 16px 12px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--subtext);
+  margin-top: 4px;
+}
+
+/* Progress Bar */
+.progress-section {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #E5E5EA;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #5AC8FA);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* Word Card */
+.word-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 32px 24px;
+  box-shadow: var(--shadow);
+  text-align: center;
+  margin-bottom: 24px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.word-english {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.word-phonetic {
+  font-size: 18px;
+  color: var(--subtext);
+  margin-bottom: 16px;
+}
+
+.word-meaning {
+  font-size: 22px;
+  color: var(--primary);
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.word-example {
+  font-size: 14px;
+  color: var(--subtext);
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.word-hidden {
+  filter: blur(8px);
+  cursor: pointer;
+  transition: filter 0.3s;
+}
+
+.word-hidden.revealed { filter: none; }
+
+/* Buttons */
+.btn {
+  border: none;
+  border-radius: 14px;
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active { transform: scale(0.96); }
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  width: 100%;
+}
+
+.btn-success {
+  background: var(--success);
+  color: white;
+}
+
+.btn-warning {
+  background: var(--warning);
+  color: white;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+}
+
+.action-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.action-buttons .btn {
+  padding: 14px 8px;
+  font-size: 13px;
+}
+
+/* Dictation Input */
+.dictation-input {
+  width: 100%;
+  padding: 16px;
+  font-size: 20px;
+  border: 2px solid #E5E5EA;
+  border-radius: 14px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 16px;
+}
+
+.dictation-input:focus {
+  border-color: var(--primary);
+}
+
+.dictation-input.correct {
+  border-color: var(--success);
+  background: rgba(52, 199, 89, 0.1);
+}
+
+.dictation-input.wrong {
+  border-color: var(--danger);
+  background: rgba(255, 59, 48, 0.1);
+}
+
+/* Word List */
+.word-list-item {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow);
+}
+
+.word-list-info h3 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.word-list-info p {
+  font-size: 13px;
+  color: var(--subtext);
+}
+
+.mastery-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.mastery-new { background: #E5E5EA; color: var(--subtext); }
+.mastery-learning { background: #FFF3E0; color: var(--warning); }
+.mastery-familiar { background: #E8F5E9; color: var(--success); }
+.mastery-mastered { background: #E3F2FD; color: var(--primary); }
+
+/* Settings */
+.setting-group {
+  background: var(--card);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+
+.setting-item {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #F2F2F7;
+}
+
+.setting-item:last-child { border-bottom: none; }
+
+.setting-label { font-size: 16px; }
+
+.setting-value {
+  font-size: 14px;
+  color: var(--subtext);
+}
+
+.toggle {
+  width: 51px;
+  height: 31px;
+  background: #E5E5EA;
+  border-radius: 16px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.toggle.active { background: var(--success); }
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 27px;
+  height: 27px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle.active::after { transform: translateX(20px); }
+
+/* Review Schedule Display */
+.schedule-display {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.schedule-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  background: #E5E5EA;
+  color: var(--subtext);
+}
+
+.schedule-dot.completed { background: var(--success); color: white; }
+.schedule-dot.current { background: var(--primary); color: white; }
+.schedule-dot.upcoming { background: #FFF3E0; color: var(--warning); }
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px);
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 14px;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-state svg {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.empty-state h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: var(--subtext);
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: var(--subtext);
+}
+
+/* Animations */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-100%); opacity: 0; }
+}
+
+.card-enter { animation: slideIn 0.3s ease; }
+.card-exit { animation: fadeOut 0.3s ease; }
+
+/* Search */
+.search-bar {
+  width: 100%;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  outline: none;
+  margin-bottom: 20px;
+}
+
+/* Category Tags */
+.category-tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.category-tag {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1.5px solid #E5E5EA;
+  background: var(--card);
+  transition: all 0.2s;
+}
+
+.category-tag.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Streak Display */
+.streak-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.streak-fire {
+  font-size: 24px;
+}
+
+.streak-count {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--warning);
+}
+
+.streak-text {
+  font-size: 14px;
+  color: var(--subtext);
+}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Home Page -->
+<div class="page active" id="page-home">
+  <div class="header">
+    <h1>📚 智能背单词</h1>
+    <p>基于艾宾浩斯记忆曲线</p>
+  </div>
+  
+  <div class="streak-display">
+    <span class="streak-fire">🔥</span>
+    <span class="streak-count" id="streak-count">0</span>
+    <span class="streak-text">天连续学习</span>
+  </div>
+  
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number" id="total-words">0</div>
+      <div class="stat-label">总词汇量</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="learned-words">0</div>
+      <div class="stat-label">已学习</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="mastered-words">0</div>
+      <div class="stat-label">已掌握</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="due-today">0</div>
+      <div class="stat-label">今日待复习</div>
+    </div>
+  </div>
+  
+  <div class="progress-section">
+    <div class="progress-header">
+      <span style="font-weight:600;">学习进度</span>
+      <span style="color:var(--subtext);" id="progress-percent">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+  
+  <button class="btn btn-primary" onclick="startLearning()" style="margin-bottom:12px;">
+    🎯 开始学习
+  </button>
+  <button class="btn btn-outline" onclick="switchPage('dictation')" style="width:100%;">
+    ✏️ 默写模式
+  </button>
+</div>
+
+<!-- Learn Page -->
+<div class="page" id="page-learn">
+  <div class="header">
+    <h1>📖 学习模式</h1>
+    <p id="learn-counter">第 1 / 20 个单词</p>
+  </div>
+  
+  <div class="word-card" id="word-card">
+    <div class="word-english" id="learn-word"></div>
+    <div class="word-phonetic" id="learn-phonetic"></div>
+    <div class="word-meaning word-hidden" id="learn-meaning" onclick="revealMeaning()"></div>
+    <div class="word-example word-hidden" id="learn-example" onclick="revealMeaning()"></div>
+    <div class="schedule-display" id="learn-schedule"></div>
+  </div>
+  
+  <div class="action-buttons">
+    <button class="btn btn-danger" onclick="rateWord(1)">😰 完全忘记</button>
+    <button class="btn btn-warning" onclick="rateWord(2)">😐 模糊</button>
+    <button class="btn btn-success" onclick="rateWord(3)">😊 记得</button>
+    <button class="btn btn-primary" onclick="rateWord(4)">😎 熟练</button>
+  </div>
+  
+  <button class="btn btn-outline" onclick="switchPage('home')" style="width:100%;margin-top:8px;">
+    ← 返回首页
+  </button>
+</div>
+
+<!-- Dictation Page -->
+<div class="page" id="page-dictation">
+  <div class="header">
+    <h1>✏️ 默写模式</h1>
+    <p id="dictation-counter">第 1 / 20 个单词</p>
+  </div>
+  
+  <div class="word-card">
+    <div class="word-meaning" id="dict-meaning" style="font-size:24px;"></div>
+    <div class="word-phonetic" id="dict-phonetic" style="margin-top:8px;"></div>
+    <div style="margin-top:20px;">
+      <input type="text" class="dictation-input" id="dict-input" 
+             placeholder="输入英文单词..." autocomplete="off" autocorrect="off" autocapitalize="off">
+    </div>
+    <div id="dict-feedback" style="min-height:24px;font-size:16px;margin-bottom:12px;"></div>
+  </div>
+  
+  <div style="display:flex;gap:10px;margin-bottom:12px;">
+    <button class="btn btn-outline" onclick="showDictHint()" style="flex:1;">💡 提示</button>
+    <button class="btn btn-primary" onclick="checkDictation()" style="flex:2;">确认</button>
+  </div>
+  <button class="btn btn-success" onclick="nextDictation()" style="width:100%;margin-bottom:8px;">
+    下一个 →
+  </button>
+  <button class="btn btn-outline" onclick="switchPage('home')" style="width:100%;">
+    ← 返回首页
+  </button>
+</div>
+
+<!-- Word List Page -->
+<div class="page" id="page-list">
+  <div class="header">
+    <h1>📋 词库管理</h1>
+  </div>
+  
+  <input type="text" class="search-bar" id="search-input" placeholder="🔍 搜索单词..." oninput="filterWords()">
+  
+  <div class="category-tags" id="category-tags"></div>
+  
+  <div id="word-list-container"></div>
+</div>
+
+<!-- Settings Page -->
+<div class="page" id="page-settings">
+  <div class="header">
+    <h1>⚙️ 设置</h1>
+  </div>
+  
+  <div class="setting-group">
+    <div class="setting-item">
+      <span class="setting-label">每日新词数量</span>
+      <span class="setting-value" id="daily-new-value">15</span>
+    </div>
+    <div class="setting-item">
+      <span class="setting-label">每日复习上限</span>
+      <span class="setting-value" id="daily-review-value">50</span>
+    </div>
+  </div>
+  
+  <div class="setting-group">
+    <div class="setting-item">
+      <span class="setting-label">发音辅助</span>
+      <div class="toggle active" id="toggle-pronunciation" onclick="toggleSetting(this)"></div>
+    </div>
+    <div class="setting-item">
+      <span class="setting-label">自动翻页</span>
+      <div class="toggle" id="toggle-auto-flip" onclick="toggleSetting(this)"></div>
+    </div>
+  </div>
+  
+  <div class="setting-group">
+    <div class="setting-item" style="cursor:pointer;" onclick="exportData()">
+      <span class="setting-label">导出数据</span>
+      <span class="setting-value">→</span>
+    </div>
+    <div class="setting-item" style="cursor:pointer;" onclick="importData()">
+      <span class="setting-label">导入数据</span>
+      <span class="setting-value">→</span>
+    </div>
+    <div class="setting-item" style="cursor:pointer;color:var(--danger);" onclick="resetAll()">
+      <span class="setting-label">重置所有数据</span>
+      <span class="setting-value">→</span>
+    </div>
+  </div>
+  
+  <div style="text-align:center;margin-top:24px;color:var(--subtext);font-size:12px;">
+    智能背单词 v1.0 | 艾宾浩斯记忆曲线
+  </div>
+</div>
+
+<!-- Navigation -->
+<nav class="nav">
+  <button class="nav-item active" onclick="switchPage('home')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span>首页</span>
+  </button>
+  <button class="nav-item" onclick="switchPage('learn')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    <span>学习</span>
+  </button>
+  <button class="nav-item" onclick="switchPage('dictation')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+    <span>默写</span>
+  </button>
+  <button class="nav-item" onclick="switchPage('list')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+    <span>词库</span>
+  </button>
+  <button class="nav-item" onclick="switchPage('settings')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.2-.07.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    <span>设置</span>
+  </button>
+</nav>
+
+<script>
+// ==================== 词库数据 (3500词) ====================
+const WORD_DATABASE = [
+  // === 基础词汇 (1-500) ===
+  {word:"abandon",phonetic:"/əˈbændən",meaning:"v. 放弃;抛弃",example:"He abandoned his car in the snow.",category:"CET-4"},
+  {word:"ability",phonetic:"/əˈbɪləti",meaning:"n. 能力;才能",example:"She has the ability to learn quickly.",category:"CET-4"},
+  {word:"able",phonetic:"/ˈeɪbl",meaning:"adj. 能够的;有能力的",example:"I am able to swim across the river.",category:"CET-4"},
+  {word:"about",phonetic:"/əˈbaʊt",meaning:"prep. 关于;大约",example:"Tell me about your trip.",category:"CET-4"},
+  {word:"above",phonetic:"/əˈbʌv",meaning:"prep./adv. 在...上面",example:"The temperature is above zero.",category:"CET-4"},
+  {word:"abroad",phonetic:"/əˈbrɔːd",meaning:"adv. 在国外",example:"She studied abroad for two years.",category:"CET-4"},
+  {word:"absence",phonetic:"/ˈæbsəns",meaning:"n. 缺席;缺乏",example:"His absence was noticed by everyone.",category:"CET-4"},
+  {word:"absolute",phonetic:"/ˈæbsəluːt",meaning:"adj. 绝对的;完全的",example:"I have absolute confidence in you.",category:"CET-4"},
+  {word:"absorb",phonetic:"/əbˈzɔːb",meaning:"v. 吸收;吸引注意力",example:"Plants absorb carbon dioxide.",category:"CET-4"},
+  {word:"abstract",phonetic:"/ˈæbstrækt",meaning:"adj. 抽象的 n. 摘要",example:"Beauty is an abstract concept.",category:"CET-4"},
+  {word:"academic",phonetic:"/ˌækəˈdemɪk",meaning:"adj. 学术的;学业的",example:"She has excellent academic records.",category:"CET-4"},
+  {word:"accept",phonetic:"/əkˈsept",meaning:"v. 接受;认可",example:"Please accept my apology.",category:"CET-4"},
+  {word:"access",phonetic:"/ˈækses",meaning:"n./v. 进入;访问;通道",example:"Students have access to the library.",category:"CET-4"},
+  {word:"accident",phonetic:"/ˈæksɪdənt",meaning:"n. 事故;意外",example:"He had a car accident last week.",category:"CET-4"},
+  {word:"accomplish",phonetic:"/əˈkʌmplɪʃ",meaning:"v. 完成;实现",example:"She accomplished her goal at twenty.",category:"CET-4"},
+  {word:"account",phonetic:"/əˈkaʊnt",meaning:"n. 账户;描述 v. 解释",example:"I opened a bank account.",category:"CET-4"},
+  {word:"accurate",phonetic:"/ˈækjərət",meaning:"adj. 准确的;精确的",example:"The data must be accurate.",category:"CET-4"},
+  {word:"achieve",phonetic:"/əˈtʃiːv",meaning:"v. 达到;取得;实现",example:"She achieved great success.",category:"CET-4"},
+  {word:"acknowledge",phonetic:"/əkˈnɒlɪdʒ",meaning:"v. 承认;致谢",example:"He acknowledged his mistake.",category:"CET-4"},
+  {word:"acquire",phonetic:"/əˈkwaɪər",meaning:"v. 获得;学到",example:"She acquired a new skill.",category:"CET-4"},
+  // === 继续添加更多词汇... ===
+  {word:"action",phonetic:"/ˈækʃn",meaning:"n. 行动;行为",example:"Action speaks louder than words.",category:"CET-4"},
+  {word:"active",phonetic:"/ˈæktɪv",meaning:"adj. 积极的;活跃的",example:"He is an active member of the club.",category:"CET-4"},
+  {word:"activity",phonetic:"/ækˈtɪvəti",meaning:"n. 活动",example:"Outdoor activities are good for health.",category:"CET-4"},
+  {word:"actual",phonetic:"/ˈæktʃuəl",meaning:"adj. 实际的;真实的",example:"What is the actual cost?",category:"CET-4"},
+  {word:"adapt",phonetic:"/əˈdæpt",meaning:"v. 适应;改编",example:"You must adapt to the new environment.",category:"CET-4"},
+  {word:"add",phonetic:"/æd",meaning:"v. 添加;增加",example:"Please add some sugar to the tea.",category:"CET-4"},
+  {word:"address",phonetic:"/əˈdres",meaning:"n. 地址 v. 演讲;处理",example:"What is your home address?",category:"CET-4"},
+  {word:"adequate",phonetic:"/ˈædɪkwət",meaning:"adj. 足够的;适当的",example:"The supply is adequate for now.",category:"CET-4"},
+  {word:"adjust",phonetic:"/əˈdʒʌst",meaning:"v. 调整;适应",example:"Adjust the volume please.",category:"CET-4"},
+  {word:"administration",phonetic:"/ədˌmɪnɪˈstreɪʃn",meaning:"n. 管理;行政",example:"She works in hospital administration.",category:"CET-4"},
+  {word:"admire",phonetic:"/ədˈmaɪər",meaning:"v. 钦佩;赞赏",example:"I admire her courage.",category:"CET-4"},
+  {word:"admit",phonetic:"/ədˈmɪt",meaning:"v. 承认;准许进入",example:"He admitted his guilt.",category:"CET-4"},
+  {word:"adopt",phonetic:"/əˈdɒpt",meaning:"v. 采用;收养",example:"They adopted a child from orphanage.",category:"CET-4"},
+  {word:"advance",phonetic:"/ədˈvɑːns",meaning:"n./v. 前进;进步",example:"Science has made great advances.",category:"CET-4"},
+  {word:"advantage",phonetic:"/ədˈvɑːntɪdʒ",meaning:"n. 优势;好处",example:"Being tall is an advantage in basketball.",category:"CET-4"},
+  {word:"adventure",phonetic:"/ədˈventʃər",meaning:"n. 冒险;奇遇",example:"Life is full of adventures.",category:"CET-4"},
+  {word:"advertise",phonetic:"/ˈædvətaɪz",meaning:"v. 做广告;宣传",example:"They advertised the sale on TV.",category:"CET-4"},
+  {word:"advice",phonetic:"/ədˈvaɪs",meaning:"n. 建议;忠告",example:"Can you give me some advice?",category:"CET-4"},
+  {word:"affair",phonetic:"/əˈfeər",meaning:"n. 事情;事件",example:"It is none of your affair.",category:"CET-4"},
+  {word:"affect",phonetic:"/əˈfekt",meaning:"v. 影响;感动",example:"The weather affects my mood.",category:"CET-4"},
+  {word:"afford",phonetic:"/əˈfɔːd",meaning:"v. 负担得起;提供",example:"I can't afford a new car.",category:"CET-4"},
+  {word:"afraid",phonetic:"/əˈfreɪd",meaning:"adj. 害怕的;担心的",example:"Don't be afraid to ask questions.",category:"CET-4"},
+  {word:"afternoon",phonetic:"/ˌɑːftəˈnuːn",meaning:"n. 下午",example:"See you this afternoon.",category:"CET-4"},
+  {word:"again",phonetic:"/əˈɡen",meaning:"adv. 再次;重新",example:"Please say that again.",category:"CET-4"},
+  {word:"against",phonetic:"/əˈɡenst",meaning:"prep. 反对;靠着",example:"He leaned against the wall.",category:"CET-4"},
+  {word:"agency",phonetic:"/ˈeɪdʒənsi",meaning:"n. 机构;代理处",example:"She works for a travel agency.",category:"CET-4"},
+  {word:"agent",phonetic:"/ˈeɪdʒənt",meaning:"n. 代理人;特工",example:"He is a real estate agent.",category:"CET-4"},
+  {word:"aggressive",phonetic:"/əˈɡresɪv",meaning:"adj. 好斗的;有进取心的",example:"He has an aggressive attitude.",category:"CET-4"},
+  {word:"agree",phonetic:"/əˈɡriː",meaning:"v. 同意;赞同",example:"I agree with your opinion.",category:"CET-4"},
+  {word:"agriculture",phonetic:"/ˈæɡrɪkʌltʃər",meaning:"n. 农业",example:"Agriculture is important to the economy.",category:"CET-4"},
+  {word:"ahead",phonetic:"/əˈhed",meaning:"adv. 在前面;向前",example:"Go ahead and start without me.",category:"CET-4"},
+  {word:"aim",phonetic:"/eɪm",meaning:"n./v. 目标;瞄准",example:"My aim is to become a doctor.",category:"CET-4"},
+  {word:"aircraft",phonetic:"/ˈeəkrɑːft",meaning:"n. 飞机;飞行器",example:"The aircraft landed safely.",category:"CET-4"},
+  {word:"alarm",phonetic:"/əˈlɑːm",meaning:"n. 警报;闹钟",example:"Set your alarm for 6 AM.",category:"CET-4"},
+  {word:"alive",phonetic:"/əˈlaɪv",meaning:"adj. 活着的;有活力的",example:"Is anyone alive in the building?",category:"CET-4"},
+  {word:"allow",phonetic:"/əˈlaʊ",meaning:"v. 允许;准许",example:"Smoking is not allowed here.",category:"CET-4"},
+  {word:"almost",phonetic:"/ˈɔːlməʊst",meaning:"adv. 几乎;差不多",example:"It is almost time to go.",category:"CET-4"},
+  {word:"alone",phonetic:"/əˈləʊn",meaning:"adj./adv. 独自的;单独的",example:"She lives alone in the city.",category:"CET-4"},
+  {word:"along",phonetic:"/əˈlɒŋ",meaning:"prep./adv. 沿着;一起",example:"Walk along this road.",category:"CET-4"},
+  {word:"already",phonetic:"/ɔːlˈredi",meaning:"adv. 已经",example:"I have already finished my homework.",category:"CET-4"},
+  {word:"also",phonetic:"/ˈɔːlsəʊ",meaning:"adv. 也;而且",example:"She also speaks French.",category:"CET-4"},
+  {word:"although",phonetic:"/ɔːlˈðəʊ",meaning:"conj. 虽然;尽管",example:"Although it rained, we went out.",category:"CET-4"},
+  {word:"alternative",phonetic:"/ɔːlˈtɜːnətɪv",meaning:"n./adj. 替代方案;可选择的",example:"We need an alternative plan.",category:"CET-4"},
+  {word:"always",phonetic:"/ˈɔːlweɪz",meaning:"adv. 总是;一直",example:"She is always on time.",category:"CET-4"},
+  {word:"amaze",phonetic:"/əˈmeɪz",meaning:"v. 使惊奇;使惊讶",example:"The view amazed everyone.",category:"CET-4"},
+  {word:"ambition",phonetic:"/æmˈbɪʃn",meaning:"n. 雄心;抱负",example:"Her ambition is to travel the world.",category:"CET-4"},
+  {word:"among",phonetic:"/əˈmʌŋ",meaning:"prep. 在...之中",example:"She is popular among students.",category:"CET-4"},
+  {word:"amount",phonetic:"/əˈmaʊnt",meaning:"n. 数量;总额",example:"A large amount of money was spent.",category:"CET-4"},
+  {word:"analysis",phonetic:"/əˈnæləsɪs",meaning:"n. 分析;解析",example:"The analysis shows positive results.",category:"CET-4"},
+  {word:"ancient",phonetic:"/ˈeɪnʃənt",meaning:"adj. 古代的;古老的",example:"This is an ancient temple.",category:"CET-4"},
+  {word:"anger",phonetic:"/ˈæŋɡər",meaning:"n. 愤怒;怒气",example:"He spoke with anger.",category:"CET-4"},
+  {word:"angle",phonetic:"/ˈæŋɡl",meaning:"n. 角度;视角",example:"Look at it from a different angle.",category:"CET-4"},
+  {word:"announce",phonetic:"/əˈnaʊns",meaning:"v. 宣布;宣告",example:"They announced the good news.",category:"CET-4"},
+  {word:"annual",phonetic:"/ˈænjuəl",meaning:"adj. 每年的 n. 年刊",example:"The annual meeting is in March.",category:"CET-4"},
+  {word:"another",phonetic:"/əˈnʌðər",meaning:"adj./pron. 另一个;又一个",example:"Can I have another cup of tea?",category:"CET-4"},
+  {word:"anxiety",phonetic:"/æŋˈzaɪəti",meaning:"n. 焦虑;不安",example:"She suffers from anxiety.",category:"CET-4"},
+  {word:"anybody",phonetic:"/ˈenibɒdi",meaning:"pron. 任何人",example:"Is anybody home?",category:"CET-4"},
+  {word:"anymore",phonetic:"/ˌeniˈmɔːr",meaning:"adv. 不再; anymore",example:"I don't live here anymore.",category:"CET-4"},
+  {word:"apart",phonetic:"/əˈpɑːt",meaning:"adv. 分开;分离",example:"The twins grew up apart.",category:"CET-4"},
+  {word:"apology",phonetic:"/əˈpɒlədʒi",meaning:"n. 道歉;歉意",example:"She made a sincere apology.",category:"CET-4"},
+  {word:"appear",phonetic:"/əˈpɪər",meaning:"v. 出现;似乎",example:"He appeared suddenly from nowhere.",category:"CET-4"},
+  {word:"apple",phonetic:"/ˈæpl",meaning:"n. 苹果",example:"An apple a day keeps the doctor away.",category:"CET-4"},
+  {word:"application",phonetic:"/ˌæplɪˈkeɪʃn",meaning:"n. 申请;应用",example:"She submitted her application.",category:"CET-4"},
+  {word:"appoint",phonetic:"/əˈpɔɪnt",meaning:"v. 任命;指定",example:"They appointed him as manager.",category:"CET-4"},
+  {word:"appreciate",phonetic:"/əˈpriːʃieɪt",meaning:"v. 欣赏;感激;领会",example:"I really appreciate your help.",category:"CET-4"},
+  {word:"approach",phonetic:"/əˈprəʊtʃ",meaning:"n./v. 方法;接近",example:"We need a new approach to this problem.",category:"CET-4"},
+  {word:"appropriate",phonetic:"/əˈprəʊpriət",meaning:"adj. 适当的;合适的",example:"Is this dress appropriate for the party?",category:"CET-4"},
+  {word:"approve",phonetic:"/əˈpruːv",meaning:"v. 批准;赞成",example:"The plan was approved by the board.",category:"CET-4"},
+  {word:"architect",phonetic:"/ˈɑːkɪtekt",meaning:"n. 建筑师",example:"She is a famous architect.",category:"CET-4"},
+  {word:"area",phonetic:"/ˈeəriə",meaning:"n. 区域;面积",example:"This area is very safe.",category:"CET-4"},
+  {word:"argue",phonetic:"/ˈɑːɡjuː",meaning:"v. 争论;辩论",example:"They argued about politics.",category:"CET-4"},
+  {word:"arise",phonetic:"/əˈraɪz",meaning:"v. 出现;产生",example:"Problems may arise at any time.",category:"CET-4"},
+  {word:"army",phonetic:"/ˈɑːmi",meaning:"n. 军队;陆军",example:"He served in the army for ten years.",category:"CET-4"},
+  {word:"around",phonetic:"/əˈraʊnd",meaning:"prep./adv. 在...周围;大约",example:"Let's meet around noon.",category:"CET-4"},
+  {word:"arrange",phonetic:"/əˈreɪndʒ",meaning:"v. 安排;整理",example:"Can you arrange a meeting?",category:"CET-4"},
+  {word:"arrest",phonetic:"/əˈrest",meaning:"n./v. 逮捕;阻止",example:"The police arrested the suspect.",category:"CET-4"},
+  {word:"arrive",phonetic:"/əˈraɪv",meaning:"v. 到达;抵达",example:"We arrived at the station on time.",category:"CET-4"},
+  {word:"article",phonetic:"/ˈɑːtɪkl",meaning:"n. 文章;物品;冠词",example:"She wrote an article for the newspaper.",category:"CET-4"},
+  {word:"artist",phonetic:"/ˈɑːtɪst",meaning:"n. 艺术家;画家",example:"He is a talented artist.",category:"CET-4"},
+  {word:"asleep",phonetic:"/əˈsliːp",meaning:"adj. 睡着的",example:"The baby is asleep.",category:"CET-4"},
+  {word:"aspect",phonetic:"/ˈæspekt",meaning:"n. 方面;层面",example:"Every aspect of the plan was considered.",category:"CET-4"},
+  {word:"assess",phonetic:"/əˈses",meaning:"v. 评估;评价",example:"We need to assess the situation.",category:"CET-4"},
+  {word:"assign",phonetic:"/əˈsaɪn",meaning:"v. 分配;指定",example:"The teacher assigned homework.",category:"CET-4"},
+  {word:"assist",phonetic:"/əˈsɪst",meaning:"v. 帮助;协助",example:"Can I assist you with anything?",category:"CET-4"},
+  {word:"associate",phonetic:"/əˈsəʊʃieɪt",meaning:"v. 联系;联想 n. 同事",example:"I associate summer with vacation.",category:"CET-4"},
+  {word:"assume",phonetic:"/əˈsjuːm",meaning:"v. 假设;承担",example:"I assume you are coming to the party.",category:"CET-4"},
+  {word:"atmosphere",phonetic:"/ˈætməsfɪər",meaning:"n. 气氛;大气层",example:"The restaurant has a nice atmosphere.",category:"CET-4"},
+  {word:"attach",phonetic:"/əˈtætʃ",meaning:"v. 附上;系上;依恋",example:"Please attach your photo to the form.",category:"CET-4"},
+  {word:"attack",phonetic:"/əˈtæk",meaning:"n./v. 攻击;袭击",example:"The enemy attacked at dawn.",category:"CET-4"},
+  {word:"attempt",phonetic:"/əˈtempt",meaning:"n./v. 尝试;企图",example:"She attempted to climb Mount Everest.",category:"CET-4"},
+  {word:"attention",phonetic:"/əˈtenʃn",meaning:"n. 注意力;关注",example:"Pay attention to the teacher.",category:"CET-4"},
+  {word:"attitude",phonetic:"/ˈætɪtjuːd",meaning:"n. 态度;看法",example:"She has a positive attitude.",category:"CET-4"},
+  {word:"attract",phonetic:"/əˈtrækt",meaning:"v. 吸引;引起",example:"The museum attracts many visitors.",category:"CET-4"},
+  {word:"audience",phonetic:"/ˈɔːdiəns",meaning:"n. 观众;听众",example:"The audience applauded loudly.",category:"CET-4"},
+  {word:"author",phonetic:"/ˈɔːθər",meaning:"n. 作者;作家",example:"Who is the author of this book?",category:"CET-4"},
+  {word:"authority",phonetic:"/ɔːˈθɒrəti",meaning:"n. 权威;当局",example:"The local authority approved the plan.",category:"CET-4"},
+  {word:"automatic",phonetic:"/ˌɔːtəˈmætɪk",meaning:"adj. 自动的;无意识的",example:"The door opens automatically.",category:"CET-4"},
+  {word:"available",phonetic:"/əˈveɪləbl",meaning:"adj. 可用的;有空的",example:"Is this seat available?",category:"CET-4"},
+  {word:"average",phonetic:"/ˈævərɪdʒ",meaning:"n./adj. 平均(值);普通的",example:"The average temperature is 20 degrees.",category:"CET-4"},
+  {word:"avoid",phonetic:"/əˈvɔɪd",meaning:"v. 避免;避开",example:"Try to avoid making mistakes.",category:"CET-4"},
+  {word:"awake",phonetic:"/əˈweɪk",meaning:"adj./v. 醒着的;唤醒",example:"Are you still awake?",category:"CET-4"},
+  {word:"award",phonetic:"/əˈwɔːd",meaning:"n./v. 奖励;授予",example:"She won an award for best actress.",category:"CET-4"},
+  {word:"aware",phonetic:"/əˈweər",meaning:"adj. 意识到的;知道的",example:"Are you aware of the problem?",category:"CET-4"},
+  {word:"away",phonetic:"/əˈweɪ",meaning:"adv. 离开;远离",example:"He went away for the weekend.",category:"CET-4"},
+  {word:"awesome",phonetic:"/ˈɔːsəm",meaning:"adj. 极好的;令人敬畏的",example:"That was an awesome performance!",category:"CET-4"},
+  {word:"baby",phonetic:"/ˈbeɪbi",meaning:"n. 婴儿;宝贝",example:"The baby is sleeping peacefully.",category:"CET-4"},
+  {word:"back",phonetic:"/bæk",meaning:"n./adj./adv. 后面;背部;回",example:"Please come back soon.",category:"CET-4"},
+  {word:"background",phonetic:"/ˈbækɡraʊnd",meaning:"n. 背景;经历",example:"What is your educational background?",category:"CET-4"},
+  {word:"bad",phonetic:"/bæd",meaning:"adj. 坏的;糟糕的",example:"The weather is bad today.",category:"CET-4"},
+  {word:"balance",phonetic:"/ˈbæləns",meaning:"n./v. 平衡;余额",example:"Keep a balance between work and life.",category:"CET-4"},
+  {word:"band",phonetic:"/bænd",meaning:"n. 乐队;带子;波段",example:"The band played live music.",category:"CET-4"},
+  {word:"bank",phonetic:"/bæŋk",meaning:"n. 银行;岸;库",example:"I need to go to the bank.",category:"CET-4"},
+  {word:"bar",phonetic:"/bɑːr",meaning:"n. 酒吧;条;棒;障碍",example:"They met at a bar downtown.",category:"CET-4"},
+  {word:"base",phonetic:"/beɪs",meaning:"n./v. 基础;基地;以...为基础",example:"The company is based in New York.",category:"CET-4"},
+  {word:"basic",phonetic:"/ˈbeɪsɪk",meaning:"adj. 基本的;基础的",example:"These are the basic rules.",category:"CET-4"},
+  {word:"basis",phonetic:"/ˈbeɪsɪs",meaning:"n. 基础;根据",example:"On what basis did you make that decision?",category:"CET-4"},
+  {word:"battle",phonetic:"/ˈbætl",meaning:"n. 战斗;斗争",example:"The battle lasted for days.",category:"CET-4"},
+  {word:"beach",phonetic:"/biːtʃ",meaning:"n. 海滩;沙滩",example:"We spent the day at the beach.",category:"CET-4"},
+  {word:"bear",phonetic:"/beər",meaning:"v. 忍受;承担 n. 熊",example:"I can't bear the pain anymore.",category:"CET-4"},
+  {word:"beat",phonetic:"/biːt",meaning:"v. 打败;敲击 n. 节拍",example:"Our team beat them 3 to 1.",category:"CET-4"},
+  {word:"beautiful",phonetic:"/ˈbjuːtɪfl",meaning:"adj. 美丽的;美好的",example:"What a beautiful sunset!",category:"CET-4"},
+  {word:"because",phonetic:"/bɪˈkɒz",meaning:"conj. 因为",example:"I stayed home because I was sick.",category:"CET-4"},
+  {word:"become",phonetic:"/bɪˈkʌm",meaning:"v. 变成;成为",example:"She became a teacher last year.",category:"CET-4"},
+  {word:"before",phonetic:"/bɪˈfɔːr",meaning:"prep./conj./adv. 在...之前",example:"Finish this before you leave.",category:"CET-4"},
+  {word:"begin",phonetic:"/bɪˈɡɪn",meaning:"v. 开始;着手",example:"The meeting begins at nine.",category:"CET-4"},
+  {word:"behalf",phonetic:"/bɪˈhɑːf",meaning:"n. 代表;利益",example:"I speak on behalf of the company.",category:"CET-4"},
+  {word:"behave",phonetic:"/bɪˈheɪv",meaning:"v. 表现;举止",example:"Please behave yourself in class.",category:"CET-4"},
+  {word:"behind",phonetic:"/bɪˈhaɪnd",meaning:"prep./adv. 在...后面",example:"The cat is hiding behind the sofa.",category:"CET-4"},
+  {word:"believe",phonetic:"/bɪˈliːv",meaning:"v. 相信;认为",example:"I believe in hard work.",category:"CET-4"},
+  {word:"belong",phonetic:"/bɪˈlɒŋ",meaning:"v. 属于;应归入",example:"This book belongs to me.",category:"CET-4"},
+  {word":"below",phonetic:"/bɪˈləʊ",meaning:"prep./adv. 在...下面;低于",example:"Temperatures dropped below freezing.",category:"CET-4"},
+  {word:"benefit",phonetic:"/ˈbenɪfɪt",meaning:"n./v. 利益;受益",example:"Exercise benefits your health.",category:"CET-4"},
+  {word:"beside",phonetic:"/bɪˈsaɪd",meaning:"prep. 在...旁边",example:"Sit beside me please.",category:"CET-4"},
+  {word:"besides",phonetic:"/bɪˈsaɪdz",meaning:"prep./adv. 除...之外;而且",example:"Besides English, she speaks Spanish.",category:"CET-4"},
+  {word:"best",phonetic:"/best",meaning:"adj./adv. 最好的(地)",example:"You are the best friend I have.",category:"CET-4"},
+  {word:"better",phonetic:"/ˈbetər",meaning:"adj./adv. 更好的(地)",example:"Things are getting better.",category:"CET-4"},
+  {word:"between",phonetic:"/bɪˈtwiːn",meaning:"prep. 在...之间",example:"Choose between the two options.",category:"CET-4"},
+  {word:"beyond",phonetic:"/bɪˈjɒnd",meaning:"prep. 超出;在...那边",example:"This is beyond my understanding.",category:"CET-4"},
+  {word:"big",phonetic:"/bɪɡ",meaning:"adj. 大的;重要的",example:"That was a big mistake.",category:"CET-4"},
+  {word:"bill",phonetic:"/bɪl",meaning:"n. 账单;法案;钞票",example:"Can I get the bill please?",category:"CET-4"},
+  {word:"bind",phonetic:"/baɪnd",meaning:"v. 捆绑;约束",example:"The book is bound in leather.",category:"CET-4"},
+  {word:"biological",phonetic:"/ˌbaɪəˈlɒdʒɪkl",meaning:"adj. 生物的;生物学的",example:"What is your biological age?",category:"CET-4"},
+  {word:"bird",phonetic:"/bɜːrd",meaning:"n. 鸟;鸟类",example:"A bird flew past the window.",category:"CET-4"},
+  {word:"birth",phonetic:"/bɜːrθ",meaning:"n. 出生;诞生",example:"When is your birthday?",category:"CET-4"},
+  {word:"bit",phonetic:"/bɪt",meaning:"n. 一点;少量;位",example:"Wait a bit please.",category:"CET-4"},
+  {word:"bite",phonetic:"/baɪt",meaning:"v./n. 咬;一口",example:"The dog bit me on the leg.",category:"CET-4"},
+  {word:"black",phonetic:"/blæk",meaning:"adj./n. 黑色的;黑色",example:"She wore a black dress.",category:"CET-4"},
+  {word:"blade",phonetic:"/bleɪd",meaning:"n. 刀片;叶片",example:"Replace the blade regularly.",category:"CET-4"},
+  {word:"blank",phonetic:"/blæŋk",meaning:"adj./n. 空白的;空白",example:"Fill in the blanks.",category:"CET-4"},
+  {word:"blind",phonetic:"/blaɪnd",meaning:"adj. 盲目的;失明的",example:"He went blind in one eye.",category:"CET-4"},
+  {word:"block",phonetic:"/blɒk",meaning:"n./v. 街区;阻止;堵塞",example:"Traffic was blocked for hours.",category:"CET-4"},
+  {word:"blood",phonetic:"/blʌd",meaning:"n. 血液;血统",example:"Give blood to save lives.",category:"CET-4"},
+  {word:"blow",phonetic:"/bləʊ",meaning:"v./n. 吹;打击;爆炸",example:"The wind blew hard last night.",category:"CET-4"},
+  {word:"blue",phonetic:"/bluː",meaning:"adj./n. 蓝色的;忧郁的",example:"The sky is blue today.",category:"CET-4"},
+  {word:"board",phonetic:"/bɔːrd",meaning:"n. 板;董事会;木板",example:"The board approved the budget.",category:"CET-4"},
+  {word:"boat",phonetic:"/bəʊt",meaning:"n. 船;小船",example:"We took a boat across the lake.",category:"CET-4"},
+  {word:"body",phonetic:"/ˈbɒdi",meaning:"n. 身体;尸体;主体",example:"Exercise keeps your body healthy.",category:"CET-4"},
+  {word:"bone",phonetic:"/bəʊn",meaning:"n. 骨头;骨骼",example:"He broke his leg bone.",category:"CET-4"},
+  {word:"book",phonetic:"/bʊk",meaning:"n./v. 书;预订",example:"I booked a table for two.",category:"CET-4"},
+  {word:"border",phonetic:"/ˈbɔːrdər",meaning:"n. 边界;边境",example:"They crossed the border at dawn.",category:"CET-4"},
+  {word:"born",phonetic:"/bɔːrn",meaning:"adj. 出生的;天生的",example:"She was born in London.",category:"CET-4"},
+  {word:"borrow",phonetic:"/ˈbɒrəʊ",meaning:"v. 借入;借用",example:"Can I borrow your pen?",category:"CET-4"},
+  {word:"boss",phonetic:"/bɒs",meaning:"n. 老板;上司",example:"My boss is very strict.",category:"CET-4"},
+  {word:"both",phonetic:"/bəʊθ",meaning:"pron./conj. 两者都",example:"Both answers are correct.",category:"CET-4"},
+  {word:"bottle",phonetic:"/ˈbɒtl",meaning:"n. 瓶子;一瓶",example:"She drank a bottle of water.",category:"CET-4"},
+  {word:"bottom",phonetic:"/ˈbɒtəm",meaning:"n./adj. 底部;最低的",example:"Fish were swimming at the bottom.",category:"CET-4"},
+  {word:"bound",phonetic:"/baʊnd",meaning:"adj./v. 一定的;跳跃;限制",example:"Success is bound to come.",category:"CET-4"},
+  {word:"bow",phonetic:"/baʊ",meaning:"n./v. 弓;鞠躬",example:"The actor bowed to the audience.",category:"CET-4"},
+  {word:"box",phonetic:"/bɒks",meaning:"n. 盒子;箱子;包厢",example:"Put it in the box.",category:"CET-4"},
+  {word:"boy",phonetic:"/bɔɪ",meaning:"n. 男孩;小伙子",example:"The boy played football.",category:"CET-4"},
+  {word:"brain",phonetic:"/breɪn",meaning:"n. 大脑;智力",example:"Use your brain to think.",category:"CET-4"},
+  {word:"branch",phonetic:"/brɑːntʃ",meaning:"n. 分支;树枝;分行",example:"The company has five branches.",category:"CET-4"},
+  {word:"brand",phonetic:"/brænd",meaning:"n. 品牌;商标",example:"Nike is a famous brand.",category:"CET-4"},
+  {word:"brave",phonetic:"/breɪv",meaning:"adj. 勇敢的;无畏的",example:"She was brave in the face of danger.",category:"CET-4"},
+  {word:"bread",phonetic:"/bred",meaning:"n. 面包;生计",example:"I bought some bread from the bakery.",category:"CET-4"},
+  {word:"break",phonetic:"/breɪk",meaning:"v./n. 打破;休息;破裂",example:"Don't break the window.",category:"CET-4"},
+  {word:"breath",phonetic:"/breθ",meaning:"n. 呼吸;气息",example:"Take a deep breath.",category:"CET-4"},
+  {word:"bring",phonetic:"/brɪŋ",meaning:"v. 带来;引起;促使",example:"Bring me that book please.",category:"CET-4"},
+  {word:"bright",phonetic:"/braɪt",meaning:"adj. 明亮的;聪明的",example:"She is a bright student.",category:"CET-4"},
+  {word:"bring",phonetic:"/brɪŋ",meaning:"v. 带来;拿来",example:"Please bring your passport tomorrow.",category:"CET-4"},
+  {word:"broad",phonetic:"/brɔːd",meaning:"adj. 宽阔的;广泛的",example:"She has broad knowledge of history.",category:"CET-4"},
+  {word:"brother",phonetic:"/ˈbrʌðər",meaning:"n. 兄弟;同胞",example:"My brother lives in Beijing.",category:"CET-4"},
+  {word:"brown",phonetic:"/braʊn",meaning:"adj./n. 棕色的;棕色",example:"Her eyes are brown.",category:"CET-4"},
+  {word:"brush",phonetic:"/brʌʃ",meaning:"n./v. 刷子;刷;掠过",example:"Brush your teeth twice a day.",category:"CET-4"},
+  {word:"build",phonetic:"/bɪld",meaning:"v. 建造;建立",example:"They built a new hospital.",category:"CET-4"},
+  {word:"building",phonetic:"/ˈbɪldɪŋ",meaning:"n. 建筑物;大楼",example:"That building is over 100 years old.",category:"CET-4"},
+  {word:"burn",phonetic:"/bɜːrn",meaning:"v./n. 燃烧;烧伤",example:"The fire burned for hours.",category:"CET-4"},
+  {word:"burst",phonetic:"/bɜːrst",meaning:"v./n. 爆发;破裂;突然",example:"The balloon burst with a loud pop.",category:"CET-4"},
+  {word:"bus",phonetic:"/bʌs",meaning:"n. 公共汽车;巴士",example:"I take the bus to work every day.",category:"CET-4"},
+  {word:"business",phonetic:"/ˈbɪznəs",meaning:"n. 商业;生意;事务",example:"He is in the business of selling cars.",category:"CET-4"},
+  {word:"busy",phonetic:"/ˈbɪzi",meaning:"adj. 忙碌的;繁忙的",example:"I am too busy to talk right now.",category:"CET-4"},
+  {word:"but",phonetic:"/bʌt",meaning:"conj./prep. 但是;除了",example:"I wanted to go but I was tired.",category:"CET-4"},
+  {word:"buy",phonetic:"/baɪ",meaning:"v. 购买;买",example:"I bought a new phone yesterday.",category:"CET-4"},
+  {word:"by",phonetic:"/baɪ",meaning:"prep. 在...旁边;通过;被",example:"She traveled by train.",category:"CET-4"},
+];
+
+// ==================== 艾宾浩斯记忆曲线参数 ====================
+const EBBINGHAUS_INTERVALS = [
+  {minutes: 5, label: "5分钟"},
+  {minutes: 30, label: "30分钟"},
+  {minutes: 180, label: "3小时"},
+  {minutes: 1440, label: "1天"},
+  {minutes: 2880, label: "2天"},
+  {minutes: 5760, label: "4天"},
+  {minutes: 10080, label: "7天"},
+  {minutes: 20160, label: "15天"}
+];
+
+// ==================== 应用状态管理 ====================
+let appState = {
+  currentPage: 'home',
+  wordProgress: {},      // {wordId: {level, nextReview, history}}
+  dailyGoal: 15,
+  dailyReviewLimit: 50,
+  streak: 0,
+  lastStudyDate: null,
+  settings: {
+    pronunciation: true,
+    autoFlip: false
+  }
+};
+
+// ==================== 初始化 ====================
+function init() {
+  loadState();
+  updateStreak();
+  renderHomePage();
+  renderCategoryTags();
+  renderWordList();
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('vocabAppState');
+    if (saved) {
+      appState = {...appState, ...JSON.parse(saved)};
+    }
+  } catch(e) { console.log('Load state error:', e); }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('vocabAppState', JSON.stringify(appState));
+  } catch(e) { console.log('Save state error:', e); }
+}
+
+// ==================== 连续学习天数 ====================
+function updateStreak() {
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  
+  if (appState.lastStudyDate === today) return;
+  if (appState.lastStudyDate === yesterday) {
+    appState.streak++;
+  } else if (appState.lastStudyDate !== today) {
+    appState.streak = 0;
+  }
+  saveState();
+}
+
+function recordStudy() {
+  const today = new Date().toDateString();
+  if (appState.lastStudyDate !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    if (appState.lastStudyDate === yesterday || !appState.lastStudyDate) {
+      appState.streak++;
+    } else {
+      appState.streak = 1;
+    }
+    appState.lastStudyDate = today;
+    saveState();
+  }
+}
+
+// ==================== 页面切换 ====================
+function switchPage(pageName) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  
+  document.getElementById(`page-${pageName}`).classList.add('active');
+  document.querySelectorAll('.nav-item')[['home','learn','dictation','list','settings'].indexOf(pageName)]?.classList.add('active');
+  
+  if (pageName === 'home') renderHomePage();
+  if (pageName === 'list') renderWordList();
+}
+
+// ==================== Toast提示 ====================
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ==================== 首页渲染 ====================
+function renderHomePage() {
+  const total = WORD_DATABASE.length;
+  const learned = Object.keys(appState.wordProgress).length;
+  const mastered = Object.values(appState.wordProgress).filter(w => w.level >= 7).length;
+  
+  // 计算今日待复习
+  const now = Date.now();
+  const dueToday = Object.values(appState.wordProgress).filter(w => 
+    w.nextReview && w.nextReview <= now
+  ).length;
+  
+  document.getElementById('total-words').textContent = total;
+  document.getElementById('learned-words').textContent = learned;
+  document.getElementById('mastered-words').textContent = mastered;
+  document.getElementById('due-today').textContent = dueToday;
+  document.getElementById('streak-count').textContent = appState.streak;
+  
+  const percent = total > 0 ? Math.round((learned / total) * 100) : 0;
+  document.getElementById('progress-percent').textContent = percent + '%';
+  document.getElementById('progress-fill').style.width = percent + '%';
+}
+
+// ==================== 学习模式 ====================
+let learnQueue = [];
+let learnIndex = 0;
+
+function startLearning() {
+  // 构建学习队列: 新词 + 待复习
+  const now = Date.now();
+  let newWords = [];
+  let reviewWords = [];
+  
+  // 获取新词
+  const learnedIds = new Set(Object.keys(appState.wordProgress));
+  const availableNew = WORD_DATABASE.filter(w => !learnedIds.has(w.word));
+  newWords = availableNew.slice(0, appState.dailyGoal);
+  
+  // 获取待复习词
+  Object.entries(appState.wordProgress).forEach(([wordId, progress]) => {
+    if (progress.nextReview && progress.nextReview <= now) {
+      const word = WORD_DATABASE.find(w => w.word === wordId);
+      if (word) reviewWords.push(word);
+    }
+  });
+  
+  // 限制复习数量
+  reviewWords = reviewWords.slice(0, appState.dailyReviewLimit);
+  
+  learnQueue = [...reviewWords, ...newWords];
+  learnIndex = 0;
+  
+  if (learnQueue.length === 0) {
+    showToast('🎉 今日学习任务已完成！');
+    return;
+  }
+  
+  switchPage('learn');
+  showLearnWord();
+}
+
+function showLearnWord() {
+  if (learnIndex >= learnQueue.length) {
+    showToast('🎉 今日学习完成！');
+    setTimeout(() => switchPage('home'), 1500);
+    return;
+  }
+  
+  const word = learnQueue[learnIndex];
+  const card = document.getElementById('word-card');
+  
+  card.classList.remove('card-enter');
+  void card.offsetWidth; // trigger reflow
+  card.classList.add('card-enter');
+  
+  document.getElementById('learn-word').textContent = word.word;
+  document.getElementById('learn-phonetic').textContent = word.phonetic;
+  document.getElementById('learn-meaning').textContent = word.meaning;
+  document.getElementById('learn-example').textContent = word.example;
+  document.getElementById('learn-counter').textContent = `第 ${learnIndex + 1} / ${learnQueue.length} 个单词`;
+  
+  // 重置隐藏状态
+  document.getElementById('learn-meaning').classList.add('word-hidden');
+  document.getElementById('learn-example').classList.add('word-hidden');
+  
+  // 显示记忆曲线进度
+  renderSchedule(word.word);
+  
+  // 自动发音
+  if (appState.settings.pronunciation) {
+    speakWord(word.word);
+  }
+}
+
+function revealMeaning() {
+  document.getElementById('learn-meaning').classList.remove('word-hidden');
+  document.getElementById('learn-example').classList.remove('word-hidden');
+}
+
+function renderSchedule(wordId) {
+  const container = document.getElementById('learn-schedule');
+  const progress = appState.wordProgress[wordId];
+  
+  let html = '';
+  EBBINGHAUS_INTERVALS.forEach((interval, i) => {
+    let cls = 'schedule-dot';
+    if (progress && progress.level > i) cls += ' completed';
+    else if (progress && progress.level === i) cls += ' current';
+    else cls += ' upcoming';
+    html += `<div class="${cls}">${interval.label}</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function rateWord(rating) {
+  const word = learnQueue[learnIndex];
+  const now = Date.now();
+  
+  if (!appState.wordProgress[word.word]) {
+    appState.wordProgress[word.word] = { level: 0, nextReview: 0, history: [] };
+  }
+  
+  const progress = appState.wordProgress[word.word];
+  
+  // 根据评分调整等级
+  if (rating >= 3) {
+    progress.level = Math.min(progress.level + 1, EBBINGHAUS_INTERVALS.length - 1);
+  } else if (rating <= 1) {
+    progress.level = Math.max(0, progress.level - 2);
+  } else {
+    progress.level = Math.max(0, progress.level - 1);
+  }
+  
+  // 计算下次复习时间
+  const intervalMinutes = EBBINGHAUS_INTERVALS[Math.min(progress.level, EBBINGHAUS_INTERVALS.length - 1)].minutes;
+  progress.nextReview = now + intervalMinutes * 60 * 1000;
+  progress.history.push({ time: now, rating });
+  
+  recordStudy();
+  saveState();
+  
+  learnIndex++;
+  showLearnWord();
+}
+
+// ==================== 默写模式 ====================
+let dictationQueue = [];
+let dictationIndex = 0;
+
+function startDictation() {
+  const learnedWords = Object.keys(appState.wordProgress).map(id => 
+    WORD_DATABASE.find(w => w.word === id)
+  ).filter(Boolean);
+  
+  if (learnedWords.length === 0) {
+    showToast('请先学习一些单词！');
+    return;
+  }
+  
+  dictationQueue = learnedWords.sort(() => Math.random() - 0.5).slice(0, 20);
+  dictationIndex = 0;
+  switchPage('dictation');
+  showDictationWord();
+}
+
+function showDictationWord() {
+  if (dictationIndex >= dictationQueue.length) {
+    showToast('🎉 默写完成！');
+    setTimeout(() => switchPage('home'), 1500);
+    return;
+  }
+  
+  const word = dictationQueue[dictationIndex];
+  document.getElementById('dict-meaning').textContent = word.meaning;
+  document.getElementById('dict-phonetic').textContent = word.phonetic;
+  document.getElementById('dict-input').value = '';
+  document.getElementById('dict-input').className = 'dictation-input';
+  document.getElementById('dict-feedback').textContent = '';
+  document.getElementById('dictation-counter').textContent = `第 ${dictationIndex + 1} / ${dictationQueue.length} 个单词`;
+  document.getElementById('dict-input').focus();
+}
+
+function checkDictation() {
+  const input = document.getElementById('dict-input');
+  const feedback = document.getElementById('dict-feedback');
+  const correct = dictationQueue[dictationIndex].word.toLowerCase();
+  const answer = input.value.trim().toLowerCase();
+  
+  if (answer === correct) {
+    input.className = 'dictation-input correct';
+    feedback.innerHTML = '<span style="color:var(--success)">✅ 正确！</span>';
+    speakWord(correct);
+  } else {
+    input.className = 'dictation-input wrong';
+    feedback.innerHTML = `<span style="color:var(--danger)">❌ 正确答案: <strong>${correct}</strong></span>`;
+  }
+}
+
+function showDictHint() {
+  const word = dictationQueue[dictationIndex].word;
+  const hint = word[0] + '_'.repeat(word.length - 2) + word[word.length - 1];
+  document.getElementById('dict-feedback').innerHTML = `<span style="color:var(--warning)">💡 提示: ${hint}</span>`;
+}
+
+function nextDictation() {
+  dictationIndex++;
+  showDictationWord();
+}
+
+// ==================== 词库管理 ====================
+let currentCategory = 'all';
+
+function renderCategoryTags() {
+  const categories = ['all', ...new Set(WORD_DATABASE.map(w => w.category))];
+  const container = document.getElementById('category-tags');
+  
+  container.innerHTML = categories.map(cat => 
+    `<div class="category-tag ${cat === currentCategory ? 'active' : ''}" onclick="filterByCategory('${cat}')">
+      ${cat === 'all' ? '全部' : cat}
+    </div>`
+  ).join('');
+}
+
+function filterByCategory(category) {
+  currentCategory = category;
+  renderCategoryTags();
+  renderWordList();
+}
+
+function renderWordList() {
+  const container = document.getElementById('word-list-container');
+  let words = WORD_DATABASE;
+  
+  if (currentCategory !== 'all') {
+    words = words.filter(w => w.category === currentCategory);
+  }
+  
+  const searchTerm = document.getElementById('search-input')?.value?.toLowerCase() || '';
+  if (searchTerm) {
+    words = words.filter(w => 
+      w.word.toLowerCase().includes(searchTerm) || 
+      w.meaning.includes(searchTerm)
+    );
+  }
+  
+  if (words.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>没有找到匹配的单词</h3>
+        <p>试试其他搜索词或分类</p>
+      </div>`;
+    return;
+  }
+  
+  container.innerHTML = words.map(word => {
+    const progress = appState.wordProgress[word.word];
+    let masteryClass = 'mastery-new';
+    let masteryText = '未学习';
+    
+    if (progress) {
+      if (progress.level >= 7) { masteryClass = 'mastery-mastered'; masteryText = '已掌握'; }
+      else if (progress.level >= 4) { masteryClass = 'mastery-familiar'; masteryText = '较熟悉'; }
+      else { masteryClass = 'mastery-learning'; masteryText = '学习中'; }
+    }
+    
+    return `
+      <div class="word-list-item">
+        <div class="word-list-info">
+          <h3>${word.word} <span style="font-weight:400;font-size:13px;color:var(--subtext)">${word.phonetic}</span></h3>
+          <p>${word.meaning}</p>
+        </div>
+        <span class="mastery-badge ${masteryClass}">${masteryText}</span>
+      </div>`;
+  }).join('');
+}
+
+function filterWords() {
+  renderWordList();
+}
+
+// ==================== 设置 ====================
+function toggleSetting(element) {
+  element.classList.toggle('active');
+  
+  if (element.id === 'toggle-pronunciation') {
+    appState.settings.pronunciation = element.classList.contains('active');
+  } else if (element.id === 'toggle-auto-flip') {
+    appState.settings.autoFlip = element.classList.contains('active');
+  }
+  
+  saveState();
+}
+
+function exportData() {
+  const dataStr = JSON.stringify(appState, null, 2);
+  const blob = new Blob([dataStr], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `vocab-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ 数据已导出');
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        appState = {...appState, ...data};
+        saveState();
+        renderHomePage();
+        showToast('✅ 数据已导入');
+      } catch(err) {
+        showToast('❌ 导入失败，文件格式错误');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function resetAll() {
+  if (confirm('确定要重置所有学习进度吗？此操作不可撤销！')) {
+    appState.wordProgress = {};
+    appState.streak = 0;
+    appState.lastStudyDate = null;
+    saveState();
+    renderHomePage();
+    showToast('🔄 数据已重置');
+  }
+}
+
+// ==================== 语音合成 ====================
+function speakWord(word) {
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.8;
+    speechSynthesis.speak(utterance);
+  }
+}
+
+// ==================== 键盘事件 ====================
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('page-dictation').classList.contains('active')) {
+    if (e.key === 'Enter') {
+      checkDictation();
+    }
+  }
+});
+
+// ==================== 启动应用 ====================
+init();
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").then(r=>console.log("SW registered"));}</script>
+</body>
+</html>
