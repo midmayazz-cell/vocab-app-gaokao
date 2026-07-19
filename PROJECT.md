@@ -261,12 +261,18 @@ vocab-app/
 - **解决**：去掉背景和弦，纯 TTS 语音；或者放 mp3 文件覆盖
 - **状态**：✅ 已解决
 
+### B013 — SSH 推送被全局配置拦截
+- **问题**：`git remote` 设为 SSH 后仍然走 HTTPS，提示 `could not read Username`
+- **原因**：全局 git 配置有 `url.https://github.com/.insteadof=git@github.com:`，把 SSH URL 自动转回 HTTPS
+- **修复**：`git config --global --unset url.https://github.com/.insteadof`
+- **状态**：✅ 已修复
+
 ---
 
 ## 6. Git 提交历史
 
 ```
-a2d1d86  2026-07-19  添加项目文档 PROJECT.md
+d987fef  2026-07-19  添加王者击杀音效mp3 7个
 b9a0a8d  2026-07-19  击杀音效：6-10连对godlike, 11+legendary, 全对ace
 7d36bf8  2026-07-19  击杀音效支持mp3文件，自动降级TTS
 95f6853  2026-07-19  王者击杀真人语音播报 + SM-2算法 + 难记词追踪
