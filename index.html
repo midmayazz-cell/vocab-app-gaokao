@@ -3859,8 +3859,8 @@ function playKillVoice(line) {
 
 // 王者击杀语音播报（返回文字 + 播放真人语音）
 function playKillAnnouncement(combo) {
-  const map = {1:'First Blood',2:'Double Kill',3:'Triple Kill',4:'Quadra Kill',5:'Penta Kill',10:'Godlike'};
-  const line = map[combo] || (combo >= 15 ? 'Legendary' : '');
+  const map = {1:'First Blood',2:'Double Kill',3:'Triple Kill',4:'Quadra Kill',5:'Penta Kill'};
+  const line = combo <= 5 ? map[combo] : (combo <= 10 ? 'Godlike' : 'Legendary');
   if (!line) return '';
   setTimeout(() => playKillVoice(line), 500);
   return line;
@@ -4095,6 +4095,11 @@ function showDictationSummary() {
   
   document.querySelector('#page-dictation .word-card').innerHTML = summaryHTML;
   document.getElementById('dictation-counter').textContent = '完成！';
+
+  // 全对时播放 ACE 音效（延迟等语音播报先播完）
+  if (dictationStats.correct === dictationQueue.length) {
+    setTimeout(() => playKillVoice('Ace'), 1200);
+  }
 }
 
 function handleDictationSubmit() {
