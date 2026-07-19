@@ -27,33 +27,48 @@
 | GitHub 用户名（实际） | `midmayazz-cell` |
 | GitHub 邮箱 | `midmayazz@gmail.com` |
 | 仓库名 | `vocab-app-gaokao` |
-| 远程 URL | `https://github.com/midmayazz-cell/vocab-app-gaokao.git` |
+| 远程 URL（HTTPS） | `https://github.com/midmayazz-cell/vocab-app-gaokao.git` |
+| 远程 URL（SSH） | `git@github.com:midmayazz-cell/vocab-app-gaokao.git` |
 | 上线地址 | `https://midmayazz-cell.github.io/vocab-app-gaokao/` |
 | 默认分支 | `main` |
 
-### 2.2 Personal Access Token
+### 2.2 推送方式（SSH，推荐）
 
-> Token 已从文档中移除，防止 GitHub 密钥扫描拦截提交。  
-> 如需重新生成，访问 https://github.com/settings/tokens （勾选 `repo` 权限）
-
-### 2.3 推送命令（带 Token 认证）
+本机已配置 SSH 密钥，推送时不需要任何密码或 token。
 
 ```bash
-# 方式一：直接推送（Token 在 URL 中）
-git push "https://oauth2:TOKEN@github.com/midmayazz-cell/vocab-app-gaokao.git" main
+cd /home/zz/下载/新建文件夹/vocab-app
 
-# 方式二：先设置 remote，再推送
-git remote set-url origin https://oauth2:TOKEN@github.com/midmayazz-cell/vocab-app-gaokao.git
+# 查看状态
+git status
+
+# 添加文件
+git add index.html
+
+# 提交
+git commit -m "描述修改内容"
+
+# 推送（SSH 无密码）
 git push origin main
-# 推送完后一定要重置 remote，清除 Token！
-git remote set-url origin https://github.com/midmayazz-cell/vocab-app-gaokao.git
+```
+
+SSH 公钥已添加到 GitHub 账号（Key 名称：`G1-Sniper-B6`）。
+
+### 2.3 初次 clone / 重新配置 remote
+
+```bash
+# SSH 方式
+git clone git@github.com:midmayazz-cell/vocab-app-gaokao.git
+
+# 如果 remote 不对，手动改
+git remote set-url origin git@github.com:midmayazz-cell/vocab-app-gaokao.git
 ```
 
 ### 2.4 启用 GitHub Pages
 
 ```bash
 curl -s -X POST \
-  -H "Authorization: Bearer TOKEN" \
+  -H "Authorization: Bearer 你的TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
   https://api.github.com/repos/midmayazz-cell/vocab-app-gaokao/pages \
   -d '{"source":{"branch":"main","path":"/"}}'
@@ -75,10 +90,8 @@ vocab-app/
 ├── icon-192.png            ← PWA 图标 192x192
 ├── icon-512.png            ← PWA 图标 512x512
 ├── README.md               ← 使用指南
+├── PROJECT.md               ← 项目文档（本文件）
 ├── TASKS.md                ← 修复任务清单
-├── deploy.sh               ← 一键部署脚本（从 .gitignore 读取 Token）
-├── deploy-to-github.sh     ← 备用部署脚本
-├── auto-deploy.sh          ← 交互式部署脚本
 ├── start-server.sh         ← 本地 HTTP 启动脚本
 ├── .claude/                ← Claude 配置目录
 ├── *测试截图.png           ← 自动化测试截图
@@ -253,6 +266,7 @@ vocab-app/
 ## 6. Git 提交历史
 
 ```
+a2d1d86  2026-07-19  添加项目文档 PROJECT.md
 b9a0a8d  2026-07-19  击杀音效：6-10连对godlike, 11+legendary, 全对ace
 7d36bf8  2026-07-19  击杀音效支持mp3文件，自动降级TTS
 95f6853  2026-07-19  王者击杀真人语音播报 + SM-2算法 + 难记词追踪
@@ -286,11 +300,8 @@ git add <file1> <file2>
 # 3. 提交
 git commit -m "描述修改内容"
 
-# 4. 推送到 GitHub（需要 Token）
-git push "https://oauth2:TOKEN@github.com/midmayazz-cell/vocab-app-gaokao.git" main
-
-# 5. 重置 remote（清除 Token）
-git remote set-url origin https://github.com/midmayazz-cell/vocab-app-gaokao.git
+# 4. 推送到 GitHub（SSH 无密码）
+git push origin main
 ```
 
 ### 7.2 本地启动测试
